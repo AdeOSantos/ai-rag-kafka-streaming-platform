@@ -55,11 +55,12 @@ This AI Copilot can:
 
 ---
 
+
 ## High-Level Architecture
 
 
 ```mermaid
-
+flowchart TB
 
 %% Client Layer
 subgraph CLIENT["Client Layer"]
@@ -207,6 +208,8 @@ AUTH --> VAULT
 GUARD --> POLICY
 GW --> AUDIT
 ```
+
+
 ---
 
 ## Key Features
