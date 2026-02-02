@@ -60,99 +60,82 @@ This AI Copilot can:
 
 flowchart TB
 
-%% =========================================================
-%% Enterprise Real-Time AI Copilot Platform Architecture
-%% =========================================================
 
-%% -------------------------
 %% Client Layer
-%% -------------------------
 subgraph CLIENT["Client Layer"]
 U1["Web Chat UI"]
 U2["REST Client"]
 U3["gRPC Client"]
 end
 
-%% -------------------------
 %% Edge / API Layer
-%% -------------------------
-subgraph EDGE["Edge & API Gateway Layer"]
-GW["RAG Gateway API (Go / Java Spring Boot)"]
-AUTH["AuthN/AuthZ (JWT / OAuth2 / IAM)"]
-RL["Rate Limiting (Redis-backed)"]
+subgraph EDGE["API Gateway Layer"]
+GW["RAG Gateway API"]
+AUTH["Auth (JWT / OAuth2)"]
+RL["Rate Limiting (Redis)"]
 end
 
-CLIENT --> GW
+U1 --> GW
+U2 --> GW
+U3 --> GW
 GW --> AUTH
 GW --> RL
 
-%% -------------------------
-%% AI Orchestration Layer
-%% -------------------------
-subgraph AI["AI Orchestration Layer"]
-ORCH["LLM Orchestrator (LangChain / LlamaIndex)"]
-AGENTS["Agent Layer (Tool Calling + Planning)"]
-GUARD["Guardrails (Prompt Injection Defense)"]
+%% AI Orchestration
+subgraph AI["AI Orchestration"]
+ORCH["LLM Orchestrator"]
+AGENTS["Agent Layer (Tool Calling)"]
+GUARD["Guardrails (Prompt Safety)"]
 end
 
 GW --> ORCH
 ORCH --> AGENTS
 ORCH --> GUARD
 
-%% -------------------------
-%% External Model Providers
-%% -------------------------
+%% LLM Providers
 subgraph MODELS["LLM Providers"]
-OPENAI["OpenAI API"]
+OPENAI["OpenAI"]
 BEDROCK["AWS Bedrock"]
-LOCAL["Self-hosted Llama (Triton Inference Server)"]
+LOCAL["Self-hosted LLM"]
 end
 
 ORCH --> OPENAI
 ORCH --> BEDROCK
 ORCH --> LOCAL
 
-%% -------------------------
-%% Retrieval & Vector Search Layer
-%% -------------------------
-subgraph RETRIEVAL["Retrieval Layer"]
-VDB["Vector Database (pgvector / Milvus / Pinecone)"]
-RETR["Retriever Service (Top-K Semantic Search)"]
-CACHE["Redis Cache (Query + Context Cache)"]
+%% Retrieval Layer
+subgraph RETRIEVAL["Retrieval + Vector Search"]
+RETR["Retriever (Top-K Search)"]
+VDB["Vector DB (pgvector / Milvus)"]
+CACHE["Redis Cache (Context Cache)"]
 end
 
 ORCH --> RETR
 RETR --> VDB
 ORCH --> CACHE
 
-%% -------------------------
-%% Embedding & Indexing Layer
-%% -------------------------
-subgraph EMBEDDINGS["Embedding & Indexing Layer"]
-INDEX["Index Builder (Chunking + Metadata)"]
-EMB_SVC["Embedding Service (FastAPI + Transformers)"]
+%% Embeddings Pipeline
+subgraph EMBEDDINGS["Embedding + Indexing"]
+INDEX["Index Builder (Chunking)"]
+EMB["Embedding Service (FastAPI)"]
 end
 
-INDEX --> EMB_SVC
-EMB_SVC --> VDB
+INDEX --> EMB
+EMB --> VDB
 
-%% -------------------------
-%% Streaming Backbone (Kafka)
-%% -------------------------
-subgraph STREAM["Kafka Streaming Backbone"]
-K1[("documents.raw")]
-K2[("embeddings.ready")]
-K3[("events.live")]
-K4[("rag.query.logs")]
+%% Kafka Backbone (GitHub-safe nodes)
+subgraph STREAM["Kafka Streaming"]
+K1["Topic: documents.raw"]
+K2["Topic: embeddings.ready"]
+K3["Topic: events.live"]
+K4["Topic: rag.query.logs"]
 end
 
-%% -------------------------
-%% Ingestion & ETL Layer
-%% -------------------------
-subgraph INGEST["Ingestion & ETL Services"]
-DOCS["Document Ingestor (PDF / Web / Markdown)"]
-EVENTS["Event Ingestor (IoT / Business Streams)"]
-ETL["Stream Processor (Flink / Spark Optional)"]
+%% Ingestion Services
+subgraph INGEST["Ingestion Services"]
+DOCS["Document Ingestor"]
+EVENTS["Event Ingestor"]
+ETL["Stream Processor (Optional)"]
 end
 
 DOCS --> K1
@@ -161,77 +144,67 @@ K1 --> ETL
 ETL --> INDEX
 INDEX --> K2
 
-%% -------------------------
 %% Data Layer
-%% -------------------------
 subgraph DATA["Enterprise Data Layer"]
-PG[("PostgreSQL Metadata + pgvector")]
-S3[("Object Storage (S3 Data Lake)")]
-OLAP[("Analytics Store (ClickHouse / BigQuery)")]
+PG["PostgreSQL + Metadata Store"]
+OBJ["Object Storage (S3)"]
+ANALYTICS["Analytics Store"]
 end
 
 VDB --> PG
-DOCS --> S3
-K4 --> OLAP
+DOCS --> OBJ
+K4 --> ANALYTICS
 
-%% -------------------------
-%% Evaluation & AI Quality
-%% -------------------------
-subgraph EVAL["Evaluation & AI Quality Layer"]
-RAGAS["RAGAS Evaluation Suite"]
-GOLD["Golden Dataset Regression Tests"]
-HALL["Hallucination + Faithfulness Metrics"]
+%% Evaluation Layer
+subgraph EVAL["Evaluation + AI Quality"]
+RAGAS["RAG Evaluation Suite"]
+GOLD["Golden Dataset Tests"]
+HALL["Hallucination Metrics"]
 end
 
 ORCH --> RAGAS
 RAGAS --> GOLD
 RAGAS --> HALL
 
-%% -------------------------
-%% Observability Layer
-%% -------------------------
-subgraph OBS["Observability & Reliability"]
-OTEL["OpenTelemetry Collector"]
-PROM["Prometheus Metrics"]
-JAEGER["Jaeger Tracing"]
-GRAF["Grafana Dashboards"]
-ALERTS["Alerting + SLOs"]
+%% Observability
+subgraph OBS["Observability"]
+OTEL["OpenTelemetry"]
+PROM["Prometheus"]
+GRAF["Grafana"]
+TRACE["Tracing (Jaeger)"]
+ALERTS["Alerts + SLOs"]
 end
 
 GW --> OTEL
-EMB_SVC --> OTEL
+EMB --> OTEL
 ETL --> OTEL
 
 OTEL --> PROM
-OTEL --> JAEGER
+OTEL --> TRACE
 PROM --> GRAF
 GRAF --> ALERTS
 
-%% -------------------------
-%% Deployment Layer
-%% -------------------------
-subgraph DEPLOY["Cloud-Native Deployment"]
-K8S["Kubernetes (EKS / AKS / GKE)"]
-HELM["Helm Charts"]
-TF["Terraform Provisioning"]
-ARGO["ArgoCD GitOps"]
+%% Deployment
+subgraph DEPLOY["Cloud Deployment"]
+K8S["Kubernetes"]
+HELM["Helm"]
+TF["Terraform"]
+ARGO["ArgoCD"]
 end
 
 TF --> K8S
 HELM --> K8S
 ARGO --> K8S
 
-%% -------------------------
-%% Security & Compliance
-%% -------------------------
-subgraph SEC["Security & Compliance"]
-VAULT["Secrets Management (Vault / AWS Secrets Manager)"]
-POL["Policy Enforcement (OPA / Kyverno)"]
-AUDIT["Audit Logs + Compliance"]
+%% Security
+subgraph SEC["Security + Compliance"]
+VAULT["Secrets Management"]
+POLICY["Policy Enforcement"]
+AUDIT["Audit Logging"]
 end
 
 AUTH --> VAULT
-GUARD --> POL
+GUARD --> POLICY
 GW --> AUDIT
 
 ---
