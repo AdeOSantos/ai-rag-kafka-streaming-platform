@@ -1,0 +1,108 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test-go:
+    name: Test Ingestion Service (Go)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Run tests
+        working-directory: services/ingestion-go
+        run: |
+          go mod download
+          go test -v -race -coverprofile=coverage.out ./...
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./services/ingestion-go/coverage.out
+          flags: ingestion-go
+
+  test-python:
+    name: Test Python Services
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Test Embedding Service
+        working-directory: services/embedding-python
+        run: |
+          pip install -r requirements.txt
+          pytest --cov=app tests/
+      
+      - name: Test Agent Service
+        working-directory: services/agent-service
+        run: |
+          pip install -r requirements.txt
+          pytest tests/
+
+  test-java:
+    name: Test RAG API (Java)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      
+      - name: Run tests
+        working-directory: services/rag-api-java
+        run: |
+          ./mvnw clean test
+          ./mvnw verify
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./services/rag-api-java/target/site/jacoco/jacoco.xml
+          flags: rag-api-java
+
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Lint Go
+        working-directory: services/ingestion-go
+        run: |
+          go install golang.org/x/lint/golint@latest
+          golint ./...
+      
+      - name: Lint Python
+        run: |
+          pip install ruff
+          ruff check services/embedding-python services/agent-service
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
