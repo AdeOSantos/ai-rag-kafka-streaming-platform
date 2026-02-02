@@ -1,0 +1,179 @@
+openapi: 3.0.3
+info:
+  title: AI RAG Copilot API
+  description: Enterprise AI Copilot with RAG and streaming capabilities
+  version: 1.0.0
+  contact:
+    name: Adalberto Santos
+    email: adalberto@example.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+  - url: https://api.example.com/api/v1
+    description: Production
+
+paths:
+  /query:
+    post:
+      summary: Query the AI Copilot
+      operationId: queryCopilot
+      tags:
+        - RAG
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '429':
+          description: Rate limit exceeded
+        '500':
+          description: Internal server error
+
+  /ingest/document:
+    post:
+      summary: Upload and ingest a document
+      operationId: ingestDocument
+      tags:
+        - Ingestion
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                source:
+                  type: string
+                metadata:
+                  type: object
+      responses:
+        '202':
+          description: Document accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestionResponse'
+
+  /search:
+    post:
+      summary: Semantic search over knowledge base
+      operationId: semanticSearch
+      tags:
+        - Search
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+components:
+  schemas:
+    QueryRequest:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          example: "What is RAG?"
+        context_limit:
+          type: integer
+          default: 5
+          minimum: 1
+          maximum: 20
+        stream:
+          type: boolean
+          default: false
+
+    QueryResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+        latency_ms:
+          type: integer
+        tokens_used:
+          type: integer
+
+    Source:
+      type: object
+      properties:
+        title:
+          type: string
+        chunk:
+          type: string
+        score:
+          type: number
+          format: float
+        metadata:
+          type: object
+
+    SearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+        top_k:
+          type: integer
+          default: 10
+        threshold:
+          type: number
+          format: float
+          default: 0.7
+
+    SearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Source'
+        total:
+          type: integer
+
+    IngestionResponse:
+      type: object
+      properties:
+        document_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [accepted, processing, completed, failed]
+        message:
+          type: string
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+security:
+  - ApiKeyAuth: []
