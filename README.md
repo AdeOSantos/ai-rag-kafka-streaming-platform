@@ -58,7 +58,7 @@ This AI Copilot can:
 ## High-Level Architecture
 
 
-flowchart TB
+```mermaid
 
 
 %% Client Layer
@@ -206,7 +206,7 @@ end
 AUTH --> VAULT
 GUARD --> POLICY
 GW --> AUDIT
-
+```
 ---
 
 ## Key Features
